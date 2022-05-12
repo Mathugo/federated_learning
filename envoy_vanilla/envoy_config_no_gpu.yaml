@@ -4,9 +4,9 @@ params:
 optional_plugin_components: {}
 
 shard_descriptor:
-  template: kvasir_shard_descriptor.KvasirShardDescriptor
+  template: gear_shard_descriptor.GearShardDescriptor
   params:
-    data_folder: kvasir_data
+    data_folder: dataset
     rank_worldsize: 2,10
     enforce_image_hw: '300,400'
   

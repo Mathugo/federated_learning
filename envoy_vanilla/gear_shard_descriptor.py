@@ -1,5 +1,3 @@
-# Copyright (C) 2020-2021 Intel Corporation
-# SPDX-License-Identifier: Apache-2.0
 """Gear shard descriptor."""
 
 import os
@@ -11,7 +9,6 @@ from PIL import Image
 from openfl.interface.interactive_api.shard_descriptor import ShardDataset
 from openfl.interface.interactive_api.shard_descriptor import ShardDescriptor
 from openfl.utilities import validate_file_hash
-
 
 class GearShardDataset(ShardDataset):
     """Gear Shard dataset class."""
@@ -58,7 +55,7 @@ class GearShardDataset(ShardDataset):
 class GearShardDescriptor(ShardDescriptor):
     """Shard descriptor class."""
 
-    def __init__(self, data_folder: str = 'kvasir_data',
+    def __init__(self, data_folder: str = 'dataset',
                  rank_worldsize: str = '1,1',
                  enforce_image_hw: str = None) -> None:
         """Initialize GearShardDescriptor."""
@@ -67,7 +64,7 @@ class GearShardDescriptor(ShardDescriptor):
         self.rank, self.worldsize = tuple(int(num) for num in rank_worldsize.split(','))
 
         self.data_folder = Path.cwd() / data_folder
-        self.download_data(self.data_folder)
+        #self.download_data(self.data_folder)
 
         # Settings for resizing data
         self.enforce_image_hw = None
@@ -128,7 +125,7 @@ if __name__ == '__main__':
 
     setup_logging()
 
-    data_folder = 'data'
+    data_folder = 'dataset'
     rank_worldsize = '1,100'
     enforce_image_hw = '529,622'
 
