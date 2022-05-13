@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+import cv2
 
 from openfl.interface.interactive_api.shard_descriptor import ShardDataset
 from openfl.interface.interactive_api.shard_descriptor import ShardDescriptor
@@ -13,7 +14,7 @@ from openfl.utilities import validate_file_hash
 class GearShardDataset(ShardDataset):
     """Gear Shard dataset class."""
 
-    def __init__(self, dataset_dir: Path, rank=1, worldsize=1, enforce_image_hw=None):
+    def __init__(self, dataset_dir: Path, rank=1, worldsize=1, enforce_image_hw=None, image_extension="bmp", mask_extension="png", mask_tag="_label_ground-truth."):
         """Initialize GearShardDataset."""
         self.rank = rank
         self.worldsize = worldsize
@@ -21,11 +22,13 @@ class GearShardDataset(ShardDataset):
         self.enforce_image_hw = enforce_image_hw
         self.images_path = self.dataset_dir / 'segmented-images' / 'images'
         self.masks_path = self.dataset_dir / 'segmented-images' / 'masks'
-
+        self.image_extension = image_extension
+        self.mask_extension = mask_extension
+        self.mask_tag = mask_tag
         self.images_names = [
             img_name
             for img_name in sorted(os.listdir(self.images_path))
-            if len(img_name) > 3 and img_name[-3:] == 'jpg'
+            if len(img_name) > 3 and img_name[-3:] == self.image_extension
         ]
         # Sharding
         self.images_names = self.images_names[self.rank - 1::self.worldsize]
@@ -34,18 +37,25 @@ class GearShardDataset(ShardDataset):
         """Return a item by the index."""
         name = self.images_names[index]
         # Reading data
-        img = Image.open(self.images_path / name)
-        mask = Image.open(self.masks_path / name)
+        name_mask = name.replace("."+self.image_extension, self.mask_tag+self.mask_extension)
+        image_path = os.path.join(self.images_path, name)
+        mask_path = os.path.join(self.masks_path, name_mask)
+
+        img = cv2.imread(image_path, 1) # rgb
+        mask = cv2.imread(mask_path, 0) # grayscale
+
         if self.enforce_image_hw is not None:
             # If we need to resize data
             # PIL accepts (w,h) tuple, not (h,w)
-            img = img.resize(self.enforce_image_hw[::-1])
-            mask = mask.resize(self.enforce_image_hw[::-1])
+            img = cv2.resize(img, self.enforce_image_hw[::-1])
+            mask = cv2.resize(mask, self.enforce_image_hw[::-1])
+            print(img.shape)
+            print(mask.shape)
         img = np.asarray(img)
         mask = np.asarray(mask)
-        assert img.shape[2] == 3
-
-        return img, mask[:, :, 0].astype(np.uint8)
+        # check rgb
+        assert img.shape[2] == 3 
+        return img, mask.astype(np.uint8)
 
     def __len__(self):
         """Return the len of the dataset."""
@@ -86,23 +96,6 @@ class GearShardDescriptor(ShardDescriptor):
             enforce_image_hw=self.enforce_image_hw
         )
 
-    @staticmethod
-    def download_data(data_folder):
-        """Download data."""
-        zip_file_path = data_folder / 'kvasir.zip'
-        os.makedirs(data_folder, exist_ok=True)
-        os.system(
-            'wget -nc'
-            " 'https://datasets.simula.no/downloads/"
-            "hyper-kvasir/hyper-kvasir-segmented-images.zip'"
-            f' -O {zip_file_path.relative_to(Path.cwd())}'
-        )
-        zip_sha384 = ('e30d18a772c6520476e55b610a4db457237f151e'
-                      '19182849d54b49ae24699881c1e18e0961f77642be900450ef8b22e7')
-        validate_file_hash(zip_file_path, zip_sha384)
-        os.system(f'unzip -n {zip_file_path.relative_to(Path.cwd())}'
-                  f' -d {data_folder.relative_to(Path.cwd())}')
-
     @property
     def sample_shape(self):
         """Return the sample shape info."""
@@ -120,38 +113,3 @@ class GearShardDescriptor(ShardDescriptor):
                 f'out of {self.worldsize}')
 
 
-if __name__ == '__main__':
-    from openfl.interface.cli import setup_logging
-
-    setup_logging()
-
-    data_folder = 'dataset'
-    rank_worldsize = '1,100'
-    enforce_image_hw = '529,622'
-
-    gear_sd = GearShardDescriptor(
-        data_folder,
-        rank_worldsize=rank_worldsize,
-        enforce_image_hw=enforce_image_hw)
-
-    print(gear_sd.dataset_description)
-    print(gear_sd.sample_shape, gear_sd.target_shape)
-
-    from openfl.component.envoy.envoy import Envoy
-
-    shard_name = 'one'
-    director_host = 'localhost'
-    director_port = 50051
-
-    keeper = Envoy(
-        shard_name=shard_name,
-        director_host=director_host,
-        director_port=director_port,
-        shard_descriptor=gear_sd,
-        tls=True,
-        root_certificate='./cert/root_ca.crt',
-        private_key='./cert/one.key',
-        certificate='./cert/one.crt',
-    )
-
-    keeper.start()

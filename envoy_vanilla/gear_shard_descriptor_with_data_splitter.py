@@ -14,10 +14,10 @@ from openfl.utilities.data_splitters import RandomNumPyDataSplitter
 
 
 class GearShardDataset(ShardDataset):
-    """Kvasir Shard dataset class."""
+    """Gear Shard dataset class."""
 
     def __init__(self, dataset_dir: Path, rank=1, worldsize=1, enforce_image_hw=None):
-        """Initialize KvasirShardDataset."""
+        """Initialize GearShardDataset."""
         self.rank = rank
         self.worldsize = worldsize
         self.dataset_dir = dataset_dir
@@ -29,7 +29,7 @@ class GearShardDataset(ShardDataset):
         self.images_names = [
             img_name
             for img_name in sorted(os.listdir(self.images_path))
-            if len(img_name) > 3 and img_name[-3:] == 'jpg'
+            if len(img_name) > 3 and img_name[-3:] == 'bmp'
         ]
         # Sharding
         data_splitter = RandomNumPyDataSplitter()
@@ -61,7 +61,7 @@ class GearShardDataset(ShardDataset):
 class GearShardDescriptor(ShardDescriptor):
     """Shard descriptor class."""
 
-    def __init__(self, data_folder: str = 'kvasir_data',
+    def __init__(self, data_folder: str = 'dataset',
                  rank_worldsize: str = '1,1',
                  enforce_image_hw: str = None) -> None:
         """Initialize GearShardDescriptor."""
@@ -114,4 +114,4 @@ class GearShardDescriptor(ShardDescriptor):
     @property
     def dataset_description(self) -> str:
         """Return the dataset description."""
-        return f'Kvasir dataset, shard number {self.rank} out of {self.worldsize}'
+        return f'Gear dataset, shard number {self.rank} out of {self.worldsize}'
