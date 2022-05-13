@@ -14,7 +14,7 @@ from openfl.utilities import validate_file_hash
 class GearShardDataset(ShardDataset):
     """Gear Shard dataset class."""
 
-    def __init__(self, dataset_dir: Path, rank=1, worldsize=1, enforce_image_hw=None, image_extension="bmp", mask_extension="png", mask_tag="_label_ground-truth."):
+    def __init__(self, dataset_dir: Path, rank=1, worldsize=1, enforce_image_hw=None, image_extension="bmp", mask_extension="png", mask_tag="_label_ground-truth_semantic."):
         """Initialize GearShardDataset."""
         self.rank = rank
         self.worldsize = worldsize
@@ -41,26 +41,27 @@ class GearShardDataset(ShardDataset):
         image_path = os.path.join(self.images_path, name)
         mask_path = os.path.join(self.masks_path, name_mask)
 
-        img = cv2.imread(image_path, 1) # rgb
-        mask = cv2.imread(mask_path, 0) # grayscale
-
+        #img = cv2.imread(image_path, 1) # rgb
+        #mask = cv2.imread(mask_path, 0) # grayscale
+        img = Image.open(image_path)
+        mask = Image.open(image_path)
         if self.enforce_image_hw is not None:
             # If we need to resize data
             # PIL accepts (w,h) tuple, not (h,w)
-            img = cv2.resize(img, self.enforce_image_hw[::-1])
-            mask = cv2.resize(mask, self.enforce_image_hw[::-1])
-            print(img.shape)
-            print(mask.shape)
+            #img = cv2.resize(img, self.enforce_image_hw[::-1])
+            #mask = cv2.resize(mask, self.enforce_image_hw[::-1])
+            img = img.resize(self.enforce_image_hw[::-1])
+            mask = mask.resize(self.enforce_image_hw[::-1])
+
         img = np.asarray(img)
         mask = np.asarray(mask)
         # check rgb
         assert img.shape[2] == 3 
-        return img, mask.astype(np.uint8)
+        return img, mask[:, :, 0].astype(np.uint8)
 
     def __len__(self):
         """Return the len of the dataset."""
-        return len(self.images_names)
-
+        return len(self.images_names) 
 
 class GearShardDescriptor(ShardDescriptor):
     """Shard descriptor class."""
