@@ -5,9 +5,13 @@ __pycache__/
 workspace/*.pkl
 client_good/kvasir_data
 *.pkl
-
+workspace/logs
+workspace/plan
+workspace/save
+client_good/
 # C extensions
-*.so
+director/geat_test_experiment
+
 
 # Distribution / packaging
 .Python
