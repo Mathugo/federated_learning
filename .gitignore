@@ -2,7 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-workspace/model_obj.pkl
+workspace/*.pkl
+client_good/kvasir_data
+*.pkl
+
 # C extensions
 *.so
 
