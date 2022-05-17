@@ -32,33 +32,48 @@ class UNet(nn.Module):
         return x
 
 class DeepLabv3:
-    def build_deeplab(self, num_classes, num_features_fc: int=256, backbone: str="mobilenetv3", pretrained_backbone: bool=True, pretrained_head: bool=True, alpha: float=0):
-        """ change the output layer and add a freezing coeff.
-            the number of in channel for the DeepLabHead depends on the backbone, 
-            MobileNetv3 has 960 out channel whereas resnet101 2048
+    def build_deeplab(self, num_classes=1, backbone: str="mobilenetv3", pretrained_backbone: bool=True, pretrained_head: bool=True, alpha: float=0, load_from_pkl: bool=False):
+        """ Build a custom deeplabv3 model for semantic segmantation 
+
         Args: 
-            backbone: str='mobilenetv3' "pre-trained backbone to download"
+            pretrained_head: bool=True          " Enable pretrained deeplabhead on COCO2017 dataset"
+            backbone: str='mobilenetv3'         " Pretrained backbone to download - mobilenetv3 or resnet101"
+            pretrained_backbone: bool=True      " Enable pretrained backbone 
+            load_from_pkl: bool=False           " Load the best model in the save folder"
+            alpha: float=0                      " Freezing coeff -> 0 <= alpha <= 1 if alpha=1 all layers are freezed
         """
-        if backbone == "mobilenetv3":
-            if pretrained_head:
-                self.model = deeplabv3_mobilenet_v3_large(pretrained=True, pretrained_backbone=True)
-                out_channel = 960
-                self.model.classifier = DeepLabHead(out_channel, num_classes)
-                self.model.aux_classifier = nn.Identity()
-                print("[*] Changing head for {} classes and removing aux classifier".format(num_classes))
-            else:
-                self.model = deeplabv3_mobilenet_v3_large(pretrained_backbone=True, num_classes=num_classes)
-        elif backbone == "resnet101":
-            if pretrained_head:
-                self.model= deeplabv3_resnet101(pretrained=True, pretrained_backbone=True)
-                out_channel = 2048
-                self.model.classifier = DeepLabHead(out_channel, num_classes)
-                self.model.aux_classifier = nn.Identity()
-                print("[*] Changing head for {} classes and removing aux classifier".format(num_classes))
-            else:
-                self.model= deeplabv3_resnet101(pretrained_backbone=True, num_classes=num_classes)
+        
+        # TODO Correct the fine tuning of the model with 
+        # enable or disabling pretrained head because here we are replacing the 
+        # head with a randomly initialize one
+        
+        if load_from_pkl:
+            print("[*] Loading best model ..")
+            self.model = torch.load("save/best_model.pkl")
+            print("[*] Done")
         else:
-            assert "No such backbone"
+            print("[*] Building model ..")
+            if backbone == "mobilenetv3":
+                if not pretrained_head:
+                    self.model = deeplabv3_mobilenet_v3_large(pretrained=True, pretrained_backbone=pretrained_backbone)
+                    out_channel = 960
+                    self.model.classifier = DeepLabHead(out_channel, num_classes)
+                    self.model.aux_classifier = nn.Identity()
+                    print("[*] Changing head for {} classes and removing aux classifier".format(num_classes))
+                else:
+                    self.model = deeplabv3_mobilenet_v3_large(pretrained_backbone=pretrained_backbone, num_classes=num_classes)
+            elif backbone == "resnet101":
+                if pretrained_head:
+                    self.model= deeplabv3_resnet101(pretrained=True, pretrained_backbone=pretrained_backbone)
+                    out_channel = 2048
+                    self.model.classifier = DeepLabHead(out_channel, num_classes)
+                    self.model.aux_classifier = nn.Identity()
+                    print("[*] Changing head for {} classes and removing aux classifier".format(num_classes))
+                else:
+                    self.model= deeplabv3_resnet101(pretrained_backbone=pretrained_backbone, num_classes=num_classes)
+            else:
+                assert "No such backbone"
+            print("[*] Done")
 
         if alpha == 0:
             self.dofreeze = False
@@ -66,8 +81,12 @@ class DeepLabv3:
             self.dofreeze = True
             self.alpha=alpha
             print("[!] This model will be trained using alpha freezing coef = {} meaning {}/{} layers will be freeze".format(self.alpha, int(self.alpha*sum(1 for x in self.model.parameters())), sum(1 for x in self.model.parameters())))
+        
         return self.model
  
+    def freeze_head(self):
+
+
     def freeze(self):
         if self.dofreeze:
             s = sum(1 for x in self.model.parameters())

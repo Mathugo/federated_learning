@@ -4,7 +4,7 @@ params:
 optional_plugin_components: {}
 
 shard_descriptor:
-  template: kvasir_shard_descriptor.KvasirShardDescriptor
+  template: shard_descriptors.kvasir_shard_descriptor.KvasirShardDescriptor
   params:
     data_folder: kvasir_data
     rank_worldsize: 8,10
