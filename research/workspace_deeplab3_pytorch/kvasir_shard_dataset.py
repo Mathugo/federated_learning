@@ -5,7 +5,6 @@ from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 from openfl.interface.interactive_api.experiment import DataInterface
 from torchvision import transforms as tsf
 
-
 class KvasirShardDataset(Dataset):
     
     def __init__(self, dataset):
