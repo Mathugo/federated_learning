@@ -3,7 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 workspace/*.pkl
-client_good/kvasir_data
+envoys/envoy_kvasir/kvasir_data
+envoys/envoy_kvasir/plan
+envoys/envoy_kvasir/save
+
 *.pkl
 workspace/logs
 workspace/plan
