@@ -1,5 +1,27 @@
 # federated_learning
-Federated Learning with Openfl
+Federated Learning with Openfl and Pytorch 
+## Goal of this project 
+This project aims to perform a federated learning approch to semantic segmentation with Pytorch
+
+## How to use 
+### envoy 
+Simply start the envoys using their associated bash files : 
+```
+    chmod +x start_envoy.sh 
+    ./start_envoy.sh $ENVOY_NAME $DIRECTOR_ADDR
+```
+
+with parameters $ENVOY_NAME (name of the envoy, ex : env_one) $DIRECTOR_ADDR (ip address of the director, ex: localhost)
+
+### director 
+Start the director with
+```sh
+    chmod +x start_director.sh
+    ./start_director.sh 
+```
+
+### Experiment
+You can then try to run the notebooks in the [research](https://github.com/Mathugo/federated_learning/tree/main/research) folder 
 
 ## Run commands
 ### Create director workspace for research
