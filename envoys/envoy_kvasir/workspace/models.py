@@ -77,8 +77,8 @@ class DeepLabv3:
                 param.requires_grad = False
                 if l_freeze < i:
                     break
-            for name, layer in self.model.named_modules():
-                print(name, layer)
+            #for name, layer in self.model.named_modules():
+            #print(name, layer)
     
     def unfreeze(self):
         for i,param in enumerate(self.model.parameters()):

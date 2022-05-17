@@ -6,7 +6,7 @@ workspace/*.pkl
 envoys/envoy_kvasir/kvasir_data
 envoys/envoy_kvasir/plan
 envoys/envoy_kvasir/save
-
+envoys/envoy_kvasir_2
 *.pkl
 workspace/logs
 workspace/plan

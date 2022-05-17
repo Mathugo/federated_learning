@@ -32,7 +32,6 @@ class Task:
             else:
                 device = 'cuda'        
             """
-
             # we freeze the layers during the training (otherwise the opt don't load the model correctly afterwards)
             deeplab_model.freeze()
 
@@ -41,10 +40,8 @@ class Task:
             #function_defined_in_notebook(some_parameter)
             
             train_loader = tqdm.tqdm(train_loader, desc="train")
-            
             model.train()
             model.to(device)
-
             losses = []
 
             for data, target in train_loader:
@@ -55,7 +52,7 @@ class Task:
                 output = model(data)["out"]
                 
                 #loss = loss_fn().forward(output, target)
-                loss = loss_fn(output, target)
+                loss = loss_fn(output=output, target=target)
                 loss.backward()
                 optimizer.step()
                 losses.append(loss.detach().cpu().numpy())
@@ -75,7 +72,7 @@ class Task:
             val_loader = tqdm.tqdm(val_loader, desc="validate")
             val_score = 0
             total_samples = 0
-            losses = []
+
             with torch.no_grad():
                 for data, target in val_loader:
                     samples = target.shape[0]
@@ -86,8 +83,7 @@ class Task:
                     output = model(data)["out"]
                     val = val_fn(output, target)
                     val_score += val.sum().cpu().numpy()
-                    losses.append(loss_fn(output, target))
 
-            return {'Val Score (Dice Coeff)': val_score / total_samples, 'val_loss (dice loss)': np.mean(losses)}
+            return {'Val Score (Dice Coeff)': val_score / total_samples,}
         
-        return TI
+        return TI, validate
