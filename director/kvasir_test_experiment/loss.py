@@ -24,30 +24,6 @@ def iou_numpy(outputs: np.array, labels: np.array):
     
     return thresholded  # Or thresholded.mean()
 
-def mIOU(label, pred, num_classes):
-    pred = F.softmax(pred.float(), dim=1)              
-    pred = torch.argmax(pred, dim=1).squeeze(1)
-    iou_list = list()
-    present_iou_list = list()
-
-    pred = pred.view(-1)
-    label = label.view(-1)
-    # Note: Following for loop goes from 0 to (num_classes-1)
-    # and ignore_index is num_classes, thus ignore_index is
-    # not considered in computation of IoU.
-    for sem_class in range(num_classes):
-        pred_inds = (pred == sem_class)
-        target_inds = (label == sem_class)
-        if target_inds.long().sum().item() == 0:
-            iou_now = float('nan')
-        else: 
-            intersection_now = (pred_inds[target_inds]).long().sum().item()
-            union_now = pred_inds.long().sum().item() + target_inds.long().sum().item() - intersection_now
-            iou_now = float(intersection_now) / float(union_now)
-            present_iou_list.append(iou_now)
-        iou_list.append(iou_now)
-    return np.mean(present_iou_list)
-
 #PyTorch Take low learning rate ~ 5e-5 1e-4
 class TverskyLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
@@ -95,7 +71,7 @@ class IoULoss(nn.Module):
         return 1 - IoU
 
 class DiceBCELoss(nn.Module):
-    def __init__(self, inputs, targets, weight=None, size_average=True):
+    def __init__(self, weight=None, size_average=True):
         super(DiceBCELoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
@@ -111,25 +87,7 @@ class DiceBCELoss(nn.Module):
         BCE = F.binary_cross_entropy(inputs, targets, reduction='mean')
         Dice_BCE = BCE + dice_loss
         
-        return Dice_BCE    
-
-class DiceLossMultiClass(nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(DiceLossMultiClass, self).__init__() 
-
-    def forward(self, inputs, targets, num_classes):
-        dice_avg = 0
-        print("\nInput shape {} Target Shape {}\n".format(inputs.shape, targets.shape))
-        for index in range(num_classes):
-            dice=DiceLoss().forward(inputs[ :, index, :, :], targets[ :, 0, :])
-            print("Dice {} for class {} ".format(dice, index))
-            dice_avg+=dice
-            print("Total Dice {}".format(dice_avg))
-        
-        print("Dice avg {}".format(dice_avg/num_classes))
-        return dice_avg/num_classes
-
-
+        return Dice_BCE     
 #PyTorch
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
@@ -149,41 +107,15 @@ class DiceLoss(nn.Module):
         
         return 1 - dice
 
-class MultiLossSegmentation(nn.Module):
-    def __init__(self, binary_loss_function, weight=None, size_average=True):
-        super(MultiLossSegmentation, self).__init__()
-        self.binary_loss_function = binary_loss_function
-    
-    def forward(self, inputs, targets, num_classes):
-        print("\nInput shape {} Target Shape {}\n".format(inputs.shape, targets.shape))
-        losses = 0
-        inputs = torch.sigmoid(inputs)       
-        print("INPUTS \n"+str(inputs[ 0, 0, :, :]))
-        print("TARGETS \n"+str(targets[0, 0, :, :]))
-        for index in range(num_classes):
-            loss=self.binary_loss_function().forward(inputs[ :, index, :, :], targets[ :, 0, :, :])
-            print("Loss for {} equals {} for class {} ".format(str(self.binary_loss_function), loss, index))
-            losses +=0
-        
-        return losses/num_classes
-
 class FocalTverskyLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(FocalTverskyLoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1, alpha=0.5, beta=0.5, gamma=1):
         
-        print("\nInput shape {} Target Shape {}\n".format(inputs.shape, targets.shape))
-        print(inputs)
-        print(targets)
-        #print("INPUTS \n"+str(inputs[0, :, :]))
-        #print("TARGETS \n"+str(targets[0, :, :, :]))
-
         #comment out if your model contains a sigmoid or equivalent activation layer
         inputs = torch.sigmoid(inputs)       
         
-        print("INPUTS \n"+str(inputs[ 0, :, :, :]))
-        print("TARGETS \n"+str(targets[0, :, :, :]))
         #flatten label and prediction tensors
         inputs = inputs.view(-1)
         targets = targets.view(-1)
@@ -198,11 +130,10 @@ class FocalTverskyLoss(nn.Module):
                        
         return FocalTversky
 
-
 #PyTorch Loss for class imbalanced
-class BinaryFocalLoss(nn.Module):
+class FocalLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
-        super(BinaryFocalLoss, self).__init__()
+        super(FocalLoss, self).__init__()
 
     def forward(self, inputs, targets, alpha=0.8, gamma=2, smooth=1):
         

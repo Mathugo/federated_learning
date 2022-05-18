@@ -42,7 +42,7 @@ class KvasirShardDataset(ShardDataset):
             # If we need to resize data
             # PIL accepts (w,h) tuple, not (h,w)
             img = img.resize(self.enforce_image_hw[::-1])
-            mask = mask.resize(self.enforce_image_hw[::-1])
+            mask= mask.resize(self.enforce_image_hw[::-1])
         img = np.asarray(img)
         mask = np.asarray(mask)
         assert img.shape[2] == 3

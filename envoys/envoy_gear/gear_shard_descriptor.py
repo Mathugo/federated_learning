@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 import cv2
 
 from openfl.interface.interactive_api.shard_descriptor import ShardDataset
@@ -41,23 +41,22 @@ class GearShardDataset(ShardDataset):
         image_path = os.path.join(self.images_path, name)
         mask_path = os.path.join(self.masks_path, name_mask)
 
-        #img = cv2.imread(image_path, 1) # rgb
-        #mask = cv2.imread(mask_path, 0) # grayscale
         img = Image.open(image_path)
-        mask = Image.open(image_path)
+        mask = ImageOps.grayscale(Image.open(mask_path))
+
         if self.enforce_image_hw is not None:
             # If we need to resize data
             # PIL accepts (w,h) tuple, not (h,w)
-            #img = cv2.resize(img, self.enforce_image_hw[::-1])
-            #mask = cv2.resize(mask, self.enforce_image_hw[::-1])
             img = img.resize(self.enforce_image_hw[::-1])
             mask = mask.resize(self.enforce_image_hw[::-1])
 
         img = np.asarray(img)
-        mask = np.asarray(mask)
+        mask = np.reshape(np.asarray(mask).astype(np.uint8), (self.enforce_image_hw[1], self.enforce_image_hw[0], 1))
+        
         # check rgb
         assert img.shape[2] == 3 
-        return img, mask[:, :, 0].astype(np.uint8)
+        return img, mask.astype(np.uint8)
+        #return img, mask[:, :, 0].astype(np.uint8)
 
     def __len__(self):
         """Return the len of the dataset."""

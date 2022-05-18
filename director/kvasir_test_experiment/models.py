@@ -59,8 +59,6 @@ class DeepLabv3:
                 if  pretrained_head:
                     self.model = deeplabv3_mobilenet_v3_large(pretrained=True, pretrained_backbone=pretrained_backbone)
                     out_channel = 960
-                    #self.model.classifier[4] = nn.Conv2d(256, num_classes, kernel_size=(1,1), stride=(1,1))
-
                     self.model.classifier = DeepLabHead(out_channel, num_classes)
                     self.model.aux_classifier = nn.Identity()
                     print("[*] Changing head for {} classes and removing aux classifier".format(num_classes))
