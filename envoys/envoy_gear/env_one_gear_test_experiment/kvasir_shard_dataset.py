@@ -2,44 +2,29 @@ import os
 import PIL
 import numpy as np
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
-from torchvision import datasets, transforms as tsf
 from openfl.interface.interactive_api.experiment import DataInterface
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+from torchvision import transforms as tsf
 
-class GearShardDataset(Dataset):
+class KvasirShardDataset(Dataset):
     
-    def __init__(self, dataset, num_classes: int=4, img_size: tuple = (400, 400)):
+    def __init__(self, dataset):
         self._dataset = dataset
-        print("[*] Dataset len {}".format(len(dataset)))
+        
         # Prepare transforms
         self.img_trans = tsf.Compose([
             tsf.ToPILImage(),
-            tsf.Resize(img_size),
+            tsf.Resize((332, 332)),
             tsf.ToTensor(),
-            # normalized settings for deeplab3
-            tsf.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-            #tsf.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
+            tsf.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
         self.mask_trans = tsf.Compose([
             tsf.ToPILImage(),
-            tsf.Resize(img_size, interpolation=PIL.Image.NEAREST),
+            tsf.Resize((332, 332), interpolation=PIL.Image.NEAREST),
             tsf.ToTensor()])
-
-        self.transform = A.Compose([
-            A.HorizontalFlip(p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=30, p=0.5),
-            A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
-            ToTensorV2(),
-        ])
-
+        
     def __getitem__(self, index):
         img, mask = self._dataset[index]
         img = self.img_trans(img).numpy()
         mask = self.mask_trans(mask).numpy()
-
-        transformed = self.transform(image=img, mask=mask)
-        self.transformed_image = transformed['image']
-        self.transformed_mask = transformed['mask']
         return img, mask
     
     def __len__(self):
@@ -48,7 +33,7 @@ class GearShardDataset(Dataset):
     
 
 # Now you can implement you data loaders using dummy_shard_desc
-class GearSD(DataInterface):
+class KvasirSD(DataInterface):
 
     def __init__(self, validation_fraction=1/8, **kwargs):
         super().__init__(**kwargs)
@@ -63,11 +48,12 @@ class GearSD(DataInterface):
     def shard_descriptor(self, shard_descriptor):
         """
         Describe per-collaborator procedures or sharding.
+
         This method will be called during a collaborator initialization.
         Local shard_descriptor  will be set by Envoy.
         """
         self._shard_descriptor = shard_descriptor
-        self._shard_dataset = GearShardDataset(shard_descriptor.get_dataset('train'))
+        self._shard_dataset = KvasirShardDataset(shard_descriptor.get_dataset('train'))
         
         validation_size = max(1, int(len(self._shard_dataset) * self.validation_fraction))
         

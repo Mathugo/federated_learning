@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageOps
 import cv2
-
 from openfl.interface.interactive_api.shard_descriptor import ShardDataset
 from openfl.interface.interactive_api.shard_descriptor import ShardDescriptor
 from openfl.utilities import validate_file_hash
@@ -14,7 +13,7 @@ from openfl.utilities import validate_file_hash
 class GearShardDataset(ShardDataset):
     """Gear Shard dataset class."""
 
-    def __init__(self, dataset_dir: Path, rank=1, worldsize=1, enforce_image_hw=None, image_extension="bmp", mask_extension="png", mask_tag="_label_ground-truth_semantic."):
+    def __init__(self, dataset_dir: Path, rank=1, worldsize=1, enforce_image_hw=None, image_extension="bmp", mask_extension="png", mask_tag="_label_ground-truth_semantic.", num_classes=4):
         """Initialize GearShardDataset."""
         self.rank = rank
         self.worldsize = worldsize
@@ -25,6 +24,7 @@ class GearShardDataset(ShardDataset):
         self.image_extension = image_extension
         self.mask_extension = mask_extension
         self.mask_tag = mask_tag
+        self.num_classes=num_classes
         self.images_names = [
             img_name
             for img_name in sorted(os.listdir(self.images_path))
@@ -51,11 +51,23 @@ class GearShardDataset(ShardDataset):
             mask = mask.resize(self.enforce_image_hw[::-1])
 
         img = np.asarray(img)
-        mask = np.reshape(np.asarray(mask).astype(np.uint8), (self.enforce_image_hw[1], self.enforce_image_hw[0], 1))
+        mask = np.reshape(np.asarray(mask).astype(np.uint8), (self.enforce_image_hw[1], self.enforce_image_hw[0]))
         
+        # transform pixel mask (400, 400) into (400, 400, num_classes)
+        if np.min(mask) == 0:
+            mask+=1
+
+        shape = (self.enforce_image_hw[1], self.enforce_image_hw[0], self.num_classes)
+
+        #print("MIN MASK {} MAX {} Name {}".format(np.min(mask), np.max(mask), name))
+        #print("[*] Number of classes {}, creating new samples of masks array {}".format(self.num_classes, shape))
+        masks = np.zeros((shape))
+
+        for i in range(self.num_classes):
+            masks[:,:,i] = np.where(mask == i, 1, 0)
         # check rgb
         assert img.shape[2] == 3 
-        return img, mask.astype(np.uint8)
+        return img, masks.astype(np.uint8)
         #return img, mask[:, :, 0].astype(np.uint8)
 
     def __len__(self):
