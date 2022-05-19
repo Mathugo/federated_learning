@@ -51,7 +51,7 @@ class Task:
 
                 output = model(data)["out"]
                 optimizer.zero_grad()                
-                loss = loss_fn.forward(output, target)
+                loss = loss_fn.forward(output, target,num_classes)
                 
                 #loss = loss_fn(output, target, num_classes)
                 loss.backward()
@@ -84,7 +84,7 @@ class Task:
 
                     output = model(data)["out"]
 
-                    loss = loss_fn.forward(output, target)
+                    loss = loss_fn.forward(output, target, num_classes)
                     #loss = loss_fn(output, target)
                     val = val_fn(output, target, num_classes)
 

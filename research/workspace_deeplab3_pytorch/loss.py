@@ -24,7 +24,7 @@ def iou_numpy(outputs: np.array, labels: np.array):
     
     return thresholded  # Or thresholded.mean()
 
-def mIOU(label, pred, num_classes):
+def mIOU(pred, label, num_classes):
     pred = F.softmax(pred.float(), dim=1)              
     pred = torch.argmax(pred, dim=1).squeeze(1)
     iou_list = list()
@@ -154,18 +154,23 @@ class MultiLossSegmentation(nn.Module):
         super(MultiLossSegmentation, self).__init__()
         self.binary_loss_function = binary_loss_function
     
-    def forward(self, inputs, targets, num_classes):
+    def forward(self, inputs, targets, num_classes, requires=True):
         print("\nInput shape {} Target Shape {}\n".format(inputs.shape, targets.shape))
-        losses = 0
-        inputs = torch.sigmoid(inputs)       
-        print("INPUTS \n"+str(inputs[ 0, 0, :, :]))
-        print("TARGETS \n"+str(targets[0, 0, :, :]))
+        losses = torch.tensor([0], dtype=torch.float16)
+        inputs = torch.sigmoid(inputs).to(torch.float32)  
+        targets = targets.to(torch.float32)     
+        #print("INPUTS \n"+str(inputs[ 0, 0, :, :]))
+        #print("TARGETS \n"+str(targets[0, 0, :, :]))
         for index in range(num_classes):
             loss=self.binary_loss_function().forward(inputs[ :, index, :, :], targets[ :, 0, :, :])
             print("Loss for {} equals {} for class {} ".format(str(self.binary_loss_function), loss, index))
-            losses +=0
-        
-        return losses/num_classes
+            losses +=loss
+        #losses/=num_classes
+        print("[!] TOTAL LOSS {}".format(losses))
+        if requires:
+            return losses.requires_grad_()
+        else:
+            return losses
 
 class FocalTverskyLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
@@ -174,11 +179,6 @@ class FocalTverskyLoss(nn.Module):
     def forward(self, inputs, targets, smooth=1, alpha=0.5, beta=0.5, gamma=1):
         
         print("\nInput shape {} Target Shape {}\n".format(inputs.shape, targets.shape))
-        print(inputs)
-        print(targets)
-        #print("INPUTS \n"+str(inputs[0, :, :]))
-        #print("TARGETS \n"+str(targets[0, :, :, :]))
-
         #comment out if your model contains a sigmoid or equivalent activation layer
         inputs = torch.sigmoid(inputs)       
         

@@ -8,6 +8,9 @@ envoys/envoy_kvasir/plan
 envoys/envoy_kvasir/save
 envoys/envoy_kvasir_2
 *.pkl
+envoys/envoy_gear/dataset
+director/gear_test_experiment
+director/kvasir_test_experiment
 workspace/logs
 workspace/plan
 workspace/save
