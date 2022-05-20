@@ -6,11 +6,13 @@ from torchvision import datasets, transforms as tsf
 from openfl.interface.interactive_api.experiment import DataInterface
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+from PIL import Image
 
 class GearShardDataset(Dataset):
     
     def __init__(self, dataset, num_classes: int=4, img_size: tuple = (400, 400)):
         self._dataset = dataset
+        self.img_size = img_size
         print("[*] Dataset len {}".format(len(dataset)))
         # Prepare transforms
         self.img_trans = tsf.Compose([
@@ -25,22 +27,73 @@ class GearShardDataset(Dataset):
             tsf.Resize(img_size, interpolation=PIL.Image.NEAREST),
             tsf.ToTensor()])
 
-        self.transform = A.Compose([
-            A.HorizontalFlip(p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=30, p=0.5),
-            A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
-            ToTensorV2(),
-        ])
+        self.transforms = tsf.Compose([
+            #tsf.ToPILImage(),
+            tsf.RandomHorizontalFlip(),
+            tsf.RandomVerticalFlip(),
+            tsf.RandomCrop((224, 224)),
+            tsf.Resize(img_size),
+            tsf.ToTensor(),
+            # normalized settings for deeplab3
+            tsf.Normalize(mean=[0.485, 0.456, 0.406, 0], std=[0.229, 0.224, 0.225, 1])])
 
     def __getitem__(self, index):
         img, mask = self._dataset[index]
-        img = self.img_trans(img).numpy()
-        mask = self.mask_trans(mask).numpy()
+        img, mask = self._dataset[index]
+        #img = self.img_trans(img).numpy()
+        #mask = self.mask_trans(mask).numpy()
+        # Concatenate image and label, to apply same transformation on both
+        
+        image_np = np.asarray(img)
+        label_np = np.asarray(mask)
 
-        transformed = self.transform(image=img, mask=mask)
-        self.transformed_image = transformed['image']
-        self.transformed_mask = transformed['mask']
+        new_shape = (image_np.shape[0], image_np.shape[1], image_np.shape[2] + 1)
+        image_and_label_np = np.zeros(new_shape, image_np.dtype)
+        image_and_label_np[:, :, 0:3] = image_np
+        image_and_label_np[:, :, 3] = label_np
+
+        # Convert to PIL
+        image_and_label = Image.fromarray(image_and_label_np)
+
+        # Apply Transforms
+        image_and_label = self.transforms(image_and_label)
+
+        # Extract image and label
+        image = np.reshape(image_and_label[0:3, :, :], (3, 400, 400))
+        label = image_and_label[3, :, :].unsqueeze(0)
+
+        # Normalize back from [0, 1] to [0, 255]
+        label = label * 255
+        #  Convert to int64 and remove second dimension
+        label = label.long().squeeze()
+
+        return image, label
+        
+        """
+        new_shape = (image_np.shape[0], image_np.shape[1], image_np.shape[2] + 1)
+        image_and_label_np = np.zeros(new_shape, image_np.dtype)
+        image_and_label_np[:, :, 0:3] = image_np
+        image_and_label_np[:, :, 3] = label_np
+
+        # Convert to PIL
+        image_and_label = Image.fromarray(image_and_label_np)
+
+        # Apply Transforms
+        image_and_label = self.transforms(image_and_label)
+
+        # Extract image and label
+        image = image_and_label[0:3, :, :]
+        label = image_and_label[3, :, :].unsqueeze(0)
+
+        #image = np.reshape(image, (3, self.img))
+
+        # Normalize back from [0, 1] to [0, 255]
+        label = label * 255
+        #  Convert to int64 and remove second dimension
+        label = label.long().squeeze()
+        print("[*] Image shape {} Mask {}".format(img.shape, mask.shape))
         return img, mask
+        """
     
     def __len__(self):
         return len(self._dataset)

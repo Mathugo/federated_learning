@@ -51,8 +51,9 @@ class GearShardDataset(ShardDataset):
             mask = mask.resize(self.enforce_image_hw[::-1])
 
         img = np.asarray(img)
+        #img = np.reshape(np.asarray(img), (3, self.enforce_image_hw[1], self.enforce_image_hw[0]))
         mask = np.reshape(np.asarray(mask).astype(np.uint8), (self.enforce_image_hw[1], self.enforce_image_hw[0]))
-        
+        """
         # transform pixel mask (400, 400) into (400, 400, num_classes)
         if np.min(mask) == 0:
             mask+=1
@@ -67,7 +68,8 @@ class GearShardDataset(ShardDataset):
             masks[:,:,i] = np.where(mask == i, 1, 0)
         # check rgb
         assert img.shape[2] == 3 
-        return img, masks.astype(np.uint8)
+        """
+        return img, mask.astype(np.uint8)
         #return img, mask[:, :, 0].astype(np.uint8)
 
     def __len__(self):

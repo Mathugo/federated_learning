@@ -33,7 +33,7 @@ class Task:
                 device = 'cuda'        
             """
             # we freeze the layers during the training (otherwise the opt don't load the model correctly afterwards)
-            deeplab_model.freeze()
+            #deeplab_model.freeze()
             optimizer.zero_grad()                
 
             print(f'\n\n TASK TRAIN GOT DEVICE {device}\n\n')
@@ -51,14 +51,14 @@ class Task:
 
                 output = model(data)["out"]
                 optimizer.zero_grad()                
-                #loss = loss_fn.forward(output, target)
+                loss = loss_fn.forward(output, target.long())
                 
-                loss = loss_fn(output, target)
+                #loss = loss_fn(output, target)
                 loss.backward()
                 optimizer.step()
                 losses.append(loss.detach().cpu().numpy())
             
-            deeplab_model.unfreeze()
+            #deeplab_model.unfreeze()
 
             return {'train_loss ({})'.format(str(loss_fn)): np.mean(losses),}
 
@@ -80,18 +80,18 @@ class Task:
                     samples = target.shape[0]
                     total_samples += samples
                     data, target = torch.tensor(data).to(device), \
-                        torch.tensor(target).to(device, dtype=torch.int64)
-
+                       torch.tensor(target).to(device, dtype=torch.int64)
+                    
                     output = model(data)["out"]
 
-                    #loss = loss_fn.forward(output, target)
-                    loss = loss_fn(output, target)
-                    val = val_fn(output, target)
+                    loss = loss_fn.forward(output, target)
+                    #loss = loss_fn(output, target)
+                    #val = val_fn(output, target)
 
-                    val_score += val.sum()
+                    #val_score += val.sum()
                     losses.append(loss.detach().cpu().numpy())
 
 
-            return {'val_score ({})'.format(str(val_fn)): val_score / total_samples, 'val_loss ({})'.format(str(loss_fn)): np.mean(losses)}
+            return {'val_loss ({})'.format(str(loss_fn)): np.mean(losses)}
         
         return TI, validate

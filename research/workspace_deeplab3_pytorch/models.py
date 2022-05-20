@@ -32,8 +32,8 @@ class UNet(nn.Module):
         return x
 
 class DeepLabv3:
-    def build_deeplab(self, num_classes=1, backbone: str="mobilenetv3", pretrained_backbone: bool=True, pretrained_head: bool=True, alpha: float=0, load_from_pkl: bool=False):
-        """ Build a custom deeplabv3 model for semantic segmantation 
+    def build_deeplab(self, num_classes=1, backbone: str="mobilenetv3", pretrained_backbone: bool=True, pretrained_head: bool=True, keep_features: bool=True, alpha: float=0, load_from_pkl: bool=False):
+        """ Build a custom deeplabv3 model for semantic segmentation 
 
         Args: 
             pretrained_head: bool=True          " Enable pretrained deeplabhead on COCO2017 dataset"
@@ -54,13 +54,16 @@ class DeepLabv3:
             self.model = torch.load("save/best_model.pkl")
             print("[*] Done")
         else:
-            print("[*] Building model ..")
+            print("[*] Building model ..")                
             if backbone == "mobilenetv3":
                 if  pretrained_head:
                     self.model = deeplabv3_mobilenet_v3_large(pretrained=True, pretrained_backbone=pretrained_backbone)
                     out_channel = 960
+                    if keep_features:
+                        print("[*] Keeping features of deeplabv3, freezing all the model except the head")
+                        self.dofreeze = True
+                        self.freeze(1)
                     #self.model.classifier[4] = nn.Conv2d(256, num_classes, kernel_size=(1,1), stride=(1,1))
-
                     self.model.classifier = DeepLabHead(out_channel, num_classes)
                     self.model.aux_classifier = nn.Identity()
                     print("[*] Changing head for {} classes and removing aux classifier".format(num_classes))
@@ -70,6 +73,9 @@ class DeepLabv3:
                 if pretrained_head:
                     self.model= deeplabv3_resnet101(pretrained=True, pretrained_backbone=pretrained_backbone)
                     out_channel = 2048
+                    if keep_features:
+                        print("[*] Keeping features of deeplabv3, freezing all the model except the head")
+                        self.freeze(1)
                     self.model.classifier = DeepLabHead(out_channel, num_classes)
                     self.model.aux_classifier = nn.Identity()
                     print("[*] Changing head for {} classes and removing aux classifier".format(num_classes))
@@ -79,23 +85,41 @@ class DeepLabv3:
                 assert "No such backbone"
             print("[*] Done")
 
-        if self.alpha == 0:
+        if self.alpha == 0 and keep_features == False:
             print("[*] Training the entire model with alpha {}".format(alpha))
             self.dofreeze = False
-        else:
-            self.dofreeze = True
+        elif self.dofreeze == True and keep_features == False:
             print("[!] This model will be trained using alpha freezing coef = {} meaning {}/{} layers will be freeze".format(self.alpha, int(self.alpha*sum(1 for x in self.model.parameters())), sum(1 for x in self.model.parameters())))
         
-        return self.model
+        self.params_to_update = self.model.parameters()
+        print("Params to learn:")
+
+        if  keep_features:
+            self.params_to_update = []
+            for name, param in self.model.named_parameters():
+                if param.requires_grad:
+                    self.params_to_update.append(param)
+                    print("\t", name)
+        else:
+            for name, param in self.model.named_parameters():
+                if param.requires_grad:
+                    self.params_to_update.append(param)
+                    print("\t", name)
+
+        return self.model, self.params_to_update
 
     def toString(self):
         for name, layer in self.model.named_modules():
             print(name, layer)
 
-    def freeze(self):
+    def freeze(self, alpha: float=None):
         if self.dofreeze:
             s = sum(1 for x in self.model.parameters())
-            l_freeze = int(s*self.alpha)
+            if alpha == None:
+                l_freeze = int(s*self.alpha)
+            else:
+                l_freeze = int(s*alpha)
+
             print("{} layers in this model, freezing {} layer\n".format(s, l_freeze))
             for i,param in enumerate(self.model.parameters()):
                 param.requires_grad = False
