@@ -4,7 +4,7 @@ aggregator:
     db_store_rounds: 2
     init_state_path: save/init.pbuf
     last_state_path: save/last.pbuf
-    rounds_to_train: 4
+    rounds_to_train: 8
     write_logs: false
   template: openfl.component.Aggregator
 api_layer:
@@ -29,9 +29,9 @@ assigner:
 collaborator:
   settings:
     db_store_rounds: 1
-    delta_updates: false
-    device_assignment_policy: CUDA_PREFERRED
-    opt_treatment: CONTINUE_GLOBAL
+    delta_updates: true
+    device_assignment_policy: CPU_ONLY
+    opt_treatment: CONTINUE_LOCAL
   template: openfl.component.Collaborator
 data_loader:
   settings:
