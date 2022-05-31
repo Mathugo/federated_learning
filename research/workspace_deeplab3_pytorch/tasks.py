@@ -6,8 +6,6 @@ from openfl.interface.interactive_api.experiment import TaskInterface
 
 #CRITERION=torch.nn.MSELoss(reduction='mean')
 
-
-
 class Task:
     """ Create task to train a federated agent """
     @staticmethod
