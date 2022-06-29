@@ -1,4 +1,4 @@
-# federated_learning
+# openfl_semantic_seg
 Federated Learning with Openfl and Pytorch 
 ## Goal of this project 
 This project aims to perform a federated and distributed learning approch to semantic segmentation with Pytorch using the director pattern from Openfl
